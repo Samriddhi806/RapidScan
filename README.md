@@ -1,77 +1,82 @@
-# Advanced Port Scanning Detection Techniques for Network Security: PortHunter
+# PortHunter
 
-## Project Overview
+A lightweight, multi-threaded network reconnaissance tool for identifying open ports and active services on a target host — built for vulnerability assessment and attack-surface evaluation.
 
-This research project, "Advanced Port Scanning Detection Techniques for Network Security," aims to develop a smarter and more reliable system for detecting port scanning attacks, including stealthy and distributed techniques, to strengthen network security and keep systems safe. Traditional security tools often struggle to detect slower, more strategic scans designed to evade detection. Our approach leverages real-time traffic monitoring, anomaly detection, and machine learning to overcome these limitations.
+## What it does
 
-## Problem Statement
+PortHunter scans a target for open TCP ports using a pool of concurrent worker threads, then hands any open ports it finds to **Nmap** for service and version detection. Instead of guessing what's listening on a port, you get the actual service name, product, and version Nmap can fingerprint.
 
-Attackers frequently employ port scanning to silently explore systems, searching for open ports and active services to exploit. Existing security tools often miss slow or distributed scans. [cite_start]This project addresses the critical need for a more efficient and accurate method to identify and mitigate these stealthy scanning attempts, which can otherwise go unnoticed.
+```
+Starting PortHunter scan on scanme.nmap.org (45.33.32.156)
+Port range: 1-1024 | Threads: 100
 
-## Technologies and Tools Used
+Found 3 open port(s). Running Nmap service detection...
 
-### Technologies:
-* Intrusion Detection Systems (IDS) 
-* Machine Learning Algorithms 
-* Packet Analysis Tools 
-* Statistical Anomaly Detection Techniques 
-* Cryptographic Techniques for Secure Monitoring 
+Scan complete for scanme.nmap.org
+--------------------------------------------------
+      22  open   ssh        OpenSSH 6.6.1p1
+      80  open   http       Apache httpd 2.4.7
+    9929  open   nping-echo
+```
 
-### Tools:
-* Wireshark (Network Traffic Analysis) 
-* Snort (IDS) 
-* Nmap (Port Scanning Tool) 
-* ZMap, Masscan, Unicornscan (High-speed Network Scanning) 
-* Python (For Implementation and Analysis) 
-* MATLAB (For Statistical Analysis) 
-* MySQL (Database for Storing Traffic Logs) 
+## Why it's built this way
 
-## Literature Survey Insights
+- **Multi-threading** — Sequentially checking 1,000+ ports over a raw TCP connection is slow, since most of the time is spent waiting on the network, not the CPU. A thread pool (via a shared `Queue`) lets many connection attempts happen concurrently, cutting scan time dramatically compared to a single-threaded loop.
+- **Nmap integration for service detection** — A raw connect scan only tells you a port is open, not what's running on it. Once PortHunter finds open ports, it passes *just those ports* to Nmap's `-sV` service/version scan — this is much faster than asking Nmap to sweep the whole range itself.
+- **Modular design** — Port discovery (`PortHunter.scan`), service detection (`PortHunter.detect_services`), reporting, and logging are separated into distinct functions/methods, so any piece (e.g. swapping in a different detection backend, or a different reporting format) can be changed independently.
 
-Our research is informed by key insights from the literature:
-* Traditional IDSs like Snort are vulnerable to slow port scanning due to their reliance on fixed time windows.
-* A smarter approach involves categorizing IP behaviors (normal, suspicious, scanner) based on network traffic analysis to improve detection accuracy and uncover stealthy scans.
-* Analyzing the unique traces left by various port scanning tools can help remotely identify the tool being used, providing valuable threat intelligence.
-* The findings also indicate that certain tools, such as Masscan and ZMap, are more commonly used in specific regions, suggesting distinct attacker strategies and targets across different parts of the world.
-* Detecting port scanning can be enhanced by looking for unusual changes in network traffic using statistical methods and mathematical models to classify IP behavior.
+## Requirements
 
-## Project Description
+- Python 3.8+
+- [Nmap](https://nmap.org/download.html) installed and on your `PATH` (required for service detection; the tool still works for port discovery without it via `--no-nmap`)
 
-This project aims to enhance port scanning detection through real-time traffic monitoring, anomaly detection, and machine learning. [cite_start]By continuously monitoring network activity in short intervals and utilizing probability-based analysis, the system can quickly and accurately identify slow or distributed scans while significantly reducing false alarms. [cite_start]This approach strengthens security without imposing excessive strain on system resources.
+## Installation
 
-## Project Modules
+```bash
+git clone https://github.com/Samriddhi806/PortHunter.git
+cd PortHunter
+pip install -r requirements.txt
+```
 
-### Design Algorithm:
-* **Feature Extraction:** Extracting relevant features from network traffic, such as SYN-ACK response ratio, failed connection attempts, and packet rates.
-* **Classification:** Employing machine learning models (e.g., k-means clustering, decision trees) for classification.
-* **Adaptive Thresholding:** Implementing adaptive thresholds to detect anomalies over time.
+## Usage
 
-### Implementation Methodology:
-* **Traffic Capture:** Capturing live network traffic using Wireshark.
-* **Traffic Analysis:** Analyzing captured traffic using Python and statistical tools.
-* **Model Training:** Training the machine learning model with labeled datasets (normal vs. malicious traffic).
-* **System Deployment:** Deploying a real-time detection system integrated with an alert mechanism.
+```bash
+python3 porthunter.py <target> [-p START-END] [-t THREADS] [--timeout SECONDS] [--no-nmap]
+```
 
-## Results & Conclusion
+| Flag | Description | Default |
+|---|---|---|
+| `target` | Hostname or IP address to scan | required |
+| `-p, --ports` | Port range, e.g. `1-1024` | `1-1024` |
+| `-t, --threads` | Number of concurrent worker threads | `100` |
+| `--timeout` | Per-port connection timeout (seconds) | `0.5` |
+| `--no-nmap` | Skip service detection, report open ports only | off |
 
-The developed system demonstrates significant improvements:
-* It effectively minimized false alarms, making it much better at detecting slow port scans than traditional intrusion detection methods.
-* With the help of machine learning, it could spot unusual network activity more accurately, improving overall detection performance.
-* It also worked in real time without putting too much strain on resources, making it a practical choice for large-scale networks.
+**Examples:**
 
-## Future Scope & Enhancements
+```bash
+# Full range scan with service detection
+python3 porthunter.py 192.168.1.1 -p 1-1024
 
-* Integration with cloud-based monitoring systems for real-time attack mitigation.
-* Expansion to detect additional reconnaissance techniques beyond port scanning.
-* Adaptive learning models that improve accuracy over time.
+# Faster port-only sweep, no Nmap needed
+python3 porthunter.py 192.168.1.1 --no-nmap
 
-## Advantages of This Project
+# More threads for a large range
+python3 porthunter.py 192.168.1.1 -p 1-65535 -t 300
+```
 
-* Increased detection accuracy with minimal false positives.
-* Real-time monitoring capabilities.
-* Scalable solution for enterprise-level cybersecurity.
+Results are printed to the console and appended to `port_scan_log.txt` with a timestamp for later reference.
 
-## Outcome
+## Testing
 
-A functional port scanning detection system that outperforms traditional IDS in detecting slow and distributed scans.
+Tested against local VMs and hosts on an isolated lab network, plus [scanme.nmap.org](https://scanme.nmap.org) (a host Nmap's maintainers provide specifically for scan testing), to validate accuracy against known open ports and services.
 
+## Responsible use
+
+Only scan hosts and networks you own or have explicit authorization to test. Unauthorized port scanning may violate computer misuse laws depending on your jurisdiction.
+
+## Possible extensions
+
+- UDP scan support
+- JSON/CSV export of results
+- Basic web dashboard for visualizing scan history

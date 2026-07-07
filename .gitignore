@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+port_scan_log.txt
+.venv/
+venv/
