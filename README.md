@@ -1,13 +1,13 @@
-# PortHunter
+# RapidScan
 
 A lightweight, multi-threaded network reconnaissance tool for identifying open ports and active services on a target host — built for vulnerability assessment and attack-surface evaluation.
 
 ## What it does
 
-PortHunter scans a target for open TCP ports using a pool of concurrent worker threads, then hands any open ports it finds to **Nmap** for service and version detection. Instead of guessing what's listening on a port, you get the actual service name, product, and version Nmap can fingerprint.
+RapidScan scans a target for open TCP ports using a pool of concurrent worker threads, then hands any open ports it finds to **Nmap** for service and version detection. Instead of guessing what's listening on a port, you get the actual service name, product, and version Nmap can fingerprint.
 
 ```
-Starting PortHunter scan on scanme.nmap.org (45.33.32.156)
+Starting RapidScan scan on scanme.nmap.org (45.33.32.156)
 Port range: 1-1024 | Threads: 100
 
 Found 3 open port(s). Running Nmap service detection...
@@ -22,8 +22,8 @@ Scan complete for scanme.nmap.org
 ## Why it's built this way
 
 - **Multi-threading** — Sequentially checking 1,000+ ports over a raw TCP connection is slow, since most of the time is spent waiting on the network, not the CPU. A thread pool (via a shared `Queue`) lets many connection attempts happen concurrently, cutting scan time dramatically compared to a single-threaded loop.
-- **Nmap integration for service detection** — A raw connect scan only tells you a port is open, not what's running on it. Once PortHunter finds open ports, it passes *just those ports* to Nmap's `-sV` service/version scan — this is much faster than asking Nmap to sweep the whole range itself.
-- **Modular design** — Port discovery (`PortHunter.scan`), service detection (`PortHunter.detect_services`), reporting, and logging are separated into distinct functions/methods, so any piece (e.g. swapping in a different detection backend, or a different reporting format) can be changed independently.
+- **Nmap integration for service detection** — A raw connect scan only tells you a port is open, not what's running on it. Once RapidScan finds open ports, it passes *just those ports* to Nmap's `-sV` service/version scan — this is much faster than asking Nmap to sweep the whole range itself.
+- **Modular design** — Port discovery (`RapidScan.scan`), service detection (`RapidScan.detect_services`), reporting, and logging are separated into distinct functions/methods, so any piece (e.g. swapping in a different detection backend, or a different reporting format) can be changed independently.
 
 ## Requirements
 
@@ -33,15 +33,15 @@ Scan complete for scanme.nmap.org
 ## Installation
 
 ```bash
-git clone https://github.com/Samriddhi806/PortHunter.git
-cd PortHunter
+git clone https://github.com/Samriddhi806/RapidScan.git
+cd RapidScan
 pip install -r requirements.txt
 ```
 
 ## Usage
 
 ```bash
-python3 porthunter.py <target> [-p START-END] [-t THREADS] [--timeout SECONDS] [--no-nmap]
+python3 rapidscan.py <target> [-p START-END] [-t THREADS] [--timeout SECONDS] [--no-nmap]
 ```
 
 | Flag | Description | Default |
@@ -56,13 +56,13 @@ python3 porthunter.py <target> [-p START-END] [-t THREADS] [--timeout SECONDS] [
 
 ```bash
 # Full range scan with service detection
-python3 porthunter.py 192.168.1.1 -p 1-1024
+python3 rapidscan.py 192.168.1.1 -p 1-1024
 
 # Faster port-only sweep, no Nmap needed
-python3 porthunter.py 192.168.1.1 --no-nmap
+python3 rapidscan.py 192.168.1.1 --no-nmap
 
 # More threads for a large range
-python3 porthunter.py 192.168.1.1 -p 1-65535 -t 300
+python3 rapidscan.py 192.168.1.1 -p 1-65535 -t 300
 ```
 
 Results are printed to the console and appended to `port_scan_log.txt` with a timestamp for later reference.
